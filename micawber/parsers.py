@@ -27,6 +27,8 @@ skip_elements = set(['a', 'pre', 'code'])
 
 
 def full_handler(url, response_data, **params):
+    if 'title' not in response_data :
+        response_data['title'] = response_data['url']
     if response_data['type'] == 'link':
         return '<a href="%(url)s" title="%(title)s">%(title)s</a>' % response_data
     elif response_data['type'] == 'photo':
@@ -35,6 +37,8 @@ def full_handler(url, response_data, **params):
         return response_data['html']
 
 def inline_handler(url, response_data, **params):
+    if 'title' not in response_data :
+        response_data['title'] = response_data['url']
     return '<a href="%(url)s" title="%(title)s">%(title)s</a>' % response_data
 
 def urlize(url):
@@ -118,17 +122,16 @@ def parse_html(html, providers, urlize_all=True, handler=full_handler, block_han
     if not BeautifulSoup:
         raise Exception('Unable to parse HTML, please install BeautifulSoup or use the text parser')
 
-    soup = BeautifulSoup(html, convertEntities=BeautifulSoup.HTML_ENTITIES)
+    soup = BeautifulSoup(html)
 
     for url in soup.findAll(text=re.compile(url_re)):
         if not _inside_skip(url):
             if _is_standalone(url):
                 url_handler = handler
             else:
-                url_handler = block_handler
+                url_handler = inline_handler
 
-            url_unescaped = url.string
-            replacement = parse_text_full(url_unescaped, providers, urlize_all, url_handler, **params)
+            replacement = parse_text_full(str(url), providers, urlize_all, url_handler, **params)
             url.replaceWith(BeautifulSoup(replacement))
 
     return unicode(soup)
@@ -137,7 +140,7 @@ def extract_html(html, providers, **params):
     if not BeautifulSoup:
         raise Exception('Unable to parse HTML, please install BeautifulSoup or use the text parser')
 
-    soup = BeautifulSoup(html, convertEntities=BeautifulSoup.HTML_ENTITIES)
+    soup = BeautifulSoup(html)
     all_urls = set()
     urls = []
     extracted_urls = {}
